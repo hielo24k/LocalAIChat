@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Robot/AI icon representing the local AI assistant -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20 C44,20 36,28 36,38 L36,58 C36,68 44,76 54,76 C64,76 72,68 72,58 L72,38 C72,28 64,20 54,20 Z" />
+    <!-- Eyes -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M44,44 C44,41.79 45.79,40 48,40 C50.21,40 52,41.79 52,44 C52,46.21 50.21,48 48,48 C45.79,48 44,46.21 44,44 Z" />
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M56,44 C56,41.79 57.79,40 60,40 C62.21,40 64,41.79 64,44 C64,46.21 62.21,48 60,48 C57.79,48 56,46.21 56,44 Z" />
+    <!-- Mouth -->
+    <path
+        android:fillColor="#1B5E20"
+        android:pathData="M46,58 Q54,64 62,58"
+        android:strokeColor="#1B5E20"
+        android:strokeWidth="2" />
+    <!-- Antenna -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M52,16 L56,16 L56,22 L52,22 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,12 C54,12 51,14 51,16 C51,18 53,19 54,19 C55,19 57,18 57,16 C57,14 54,12 54,12 Z" />
+    <!-- Body base -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,76 L68,76 L68,88 L40,88 Z" />
+    <!-- Legs -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,88 L46,88 L46,96 L42,96 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M62,88 L66,88 L66,96 L62,96 Z" />
+</vector>
