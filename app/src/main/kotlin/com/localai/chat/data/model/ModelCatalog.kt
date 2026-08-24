@@ -55,6 +55,14 @@ object ModelCatalog {
             sizeBytes = 1_500_000_000L,
             downloadUrl = GEMMA_2B_DOWNLOAD_URL, // replace with CPU-specific URL
             fileName = "gemma-2b-it-cpu-int4.bin"
+        ),
+        ModelInfo(
+            id = "gemma_3_1b_it_cpu",
+            displayName = "Gemma 3 1B-IT (CPU INT4)",
+            description = "Google Gemma 3 1B instruction-tuned (2025), highly efficient on-device model for CPU.",
+            sizeBytes = 800_000_000L,
+            downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-cpu-int4.task",
+            fileName = "gemma3-1b-it-cpu-int4.task"
         )
     )
 

@@ -1,25 +1,33 @@
 package com.localai.chat.ui.chat
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.DownloadForOffline
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.localai.chat.data.database.ConversationEntity
 import com.localai.chat.data.repository.ModelStatus
 import com.localai.chat.ui.components.ChatBubble
 import com.localai.chat.ui.components.MessageInput
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,6 +38,8 @@ fun ChatScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
     // Auto-scroll to latest message
     LaunchedEffect(uiState.messages.size, uiState.messages.lastOrNull()?.content) {
@@ -50,94 +60,198 @@ fun ChatScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "TIO",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = when (val status = uiState.modelStatus) {
-                                is ModelStatus.Loaded -> "Model ready"
-                                is ModelStatus.Loading -> "Loading model..."
-                                is ModelStatus.Installed -> "Model installed, not loaded"
-                                is ModelStatus.NotInstalled -> "No model installed"
-                                is ModelStatus.Error -> "Error: ${status.message}"
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = when (uiState.modelStatus) {
-                                is ModelStatus.Loaded -> MaterialTheme.colorScheme.primary
-                                is ModelStatus.Error -> MaterialTheme.colorScheme.error
-                                else -> MaterialTheme.colorScheme.outline
-                            }
-                        )
-                    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ConversationDrawer(
+                conversations = uiState.conversations,
+                currentConversationId = uiState.currentConversationId,
+                onNewChat = {
+                    viewModel.startNewConversation()
+                    scope.launch { drawerState.close() }
                 },
-                actions = {
-                    IconButton(onClick = { viewModel.clearConversation() }) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteSweep,
-                            contentDescription = "Clear conversation"
-                        )
-                    }
-                    IconButton(onClick = onNavigateToModels) {
-                        Icon(
-                            imageVector = Icons.Default.DownloadForOffline,
-                            contentDescription = "Models"
-                        )
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings"
-                        )
-                    }
+                onSelectConversation = { id ->
+                    viewModel.loadConversation(id)
+                    scope.launch { drawerState.close() }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                onDeleteConversation = viewModel::deleteConversation
             )
-        },
-        bottomBar = {
-            Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                MessageInput(
-                    value = uiState.inputText,
-                    onValueChange = viewModel::onInputChange,
-                    onSend = viewModel::sendMessage,
-                    onStop = viewModel::stopGeneration,
-                    isGenerating = uiState.isGenerating,
-                    enabled = uiState.modelStatus is ModelStatus.Loaded
+        }
+    ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "TIO",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = when (val status = uiState.modelStatus) {
+                                    is ModelStatus.Loaded -> "Model ready"
+                                    is ModelStatus.Loading -> "Loading model..."
+                                    is ModelStatus.Installed -> "Model installed, not loaded"
+                                    is ModelStatus.NotInstalled -> "No model installed"
+                                    is ModelStatus.Error -> "Error: ${status.message}"
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = when (uiState.modelStatus) {
+                                    is ModelStatus.Loaded -> MaterialTheme.colorScheme.primary
+                                    is ModelStatus.Error -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.outline
+                                }
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Chat history"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.clearConversation() }) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = "Clear conversation"
+                            )
+                        }
+                        IconButton(onClick = onNavigateToModels) {
+                            Icon(
+                                imageVector = Icons.Default.DownloadForOffline,
+                                contentDescription = "Models"
+                            )
+                        }
+                        IconButton(onClick = onNavigateToSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
+            },
+            bottomBar = {
+                Column(
+                    modifier = Modifier.imePadding()
+                ) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    MessageInput(
+                        value = uiState.inputText,
+                        onValueChange = viewModel::onInputChange,
+                        onSend = viewModel::sendMessage,
+                        onStop = viewModel::stopGeneration,
+                        isGenerating = uiState.isGenerating,
+                        enabled = uiState.modelStatus is ModelStatus.Loaded
+                    )
+                }
+            }
+        ) { innerPadding ->
+            if (uiState.messages.isEmpty()) {
+                EmptyState(
+                    modelLoaded = uiState.modelStatus is ModelStatus.Loaded,
+                    onNavigateToModels = onNavigateToModels,
+                    onPromptClick = { prompt ->
+                        viewModel.onInputChange(prompt)
+                        viewModel.sendMessage()
+                    },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        items = uiState.messages,
+                        key = { it.id }
+                    ) { message ->
+                        ChatBubble(message = message)
+                    }
+                }
             }
         }
-    ) { innerPadding ->
-        if (uiState.messages.isEmpty()) {
-            EmptyState(
-                modelLoaded = uiState.modelStatus is ModelStatus.Loaded,
-                onNavigateToModels = onNavigateToModels,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+    }
+}
+
+@Composable
+private fun ConversationDrawer(
+    conversations: List<ConversationEntity>,
+    currentConversationId: String?,
+    onNewChat: () -> Unit,
+    onSelectConversation: (String) -> Unit,
+    onDeleteConversation: (String) -> Unit
+) {
+    ModalDrawerSheet(modifier = Modifier.width(300.dp)) {
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Tio Local AI",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        Button(
+            onClick = onNewChat,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("New Chat")
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        if (conversations.isEmpty()) {
+            Text(
+                text = "No conversations yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(16.dp)
             )
         } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    items = uiState.messages,
-                    key = { it.id }
-                ) { message ->
-                    ChatBubble(message = message)
+            LazyColumn {
+                items(conversations, key = { it.id }) { conversation ->
+                    NavigationDrawerItem(
+                        label = {
+                            Text(
+                                text = conversation.title,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        selected = conversation.id == currentConversationId,
+                        onClick = { onSelectConversation(conversation.id) },
+                        icon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null) },
+                        badge = {
+                            IconButton(
+                                onClick = { onDeleteConversation(conversation.id) },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Delete",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
                 }
             }
         }
@@ -148,6 +262,7 @@ fun ChatScreen(
 private fun EmptyState(
     modelLoaded: Boolean,
     onNavigateToModels: () -> Unit,
+    onPromptClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -155,13 +270,17 @@ private fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "\uD83E\uDD16",
-            style = MaterialTheme.typography.displayLarge
+        Image(
+            painter = painterResource(id = com.localai.chat.R.drawable.ic_tio_logo),
+            contentDescription = "Tio Local AI",
+            modifier = Modifier
+                .size(80.dp)
+                .clip(RoundedCornerShape(16.dp)),
+            contentScale = ContentScale.Crop
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "LocalAI Chat",
+            text = "Tio Local AI",
             style = MaterialTheme.typography.headlineMedium
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -180,6 +299,33 @@ private fun EmptyState(
             Button(onClick = onNavigateToModels) {
                 Text("Download a Model")
             }
+        }
+        if (modelLoaded) {
+            Spacer(modifier = Modifier.height(24.dp))
+            SuggestedPrompts(onPromptClick = onPromptClick)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SuggestedPrompts(onPromptClick: (String) -> Unit) {
+    val prompts = listOf(
+        "\uD83D\uDCA1" to "Explain how a CPU works in simple terms",
+        "\uD83D\uDCDD" to "Write a short poem about technology",
+        "\uD83E\uDDEE" to "What is 347 × 28?",
+        "\uD83C\uDF0D" to "Translate 'Good morning' to 5 languages"
+    )
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        prompts.forEach { (emoji, text) ->
+            SuggestionChip(
+                onClick = { onPromptClick(text) },
+                label = { Text("$emoji $text", maxLines = 1) }
+            )
         }
     }
 }

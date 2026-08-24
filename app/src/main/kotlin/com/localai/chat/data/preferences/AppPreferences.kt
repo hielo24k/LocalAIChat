@@ -11,7 +11,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 data class AppSettings(
     val systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
-    val temperature: Float = 0.8f,
+    val temperature: Float = 0.7f,
     val maxTokens: Int = 1024,
     val topP: Float = 0.95f,
     val selectedModelId: String = "gemma_2b_it_int4",
@@ -20,15 +20,27 @@ data class AppSettings(
     val kaggleKey: String = ""
 )
 
-const val DEFAULT_SYSTEM_PROMPT = "You are a helpful AI assistant running locally on this Android device. " +
-    "You provide concise, accurate, and thoughtful responses. " +
-    "Your responses are kept private and never sent to any external server."
+const val DEFAULT_SYSTEM_PROMPT =
+    "You are TIO, a concise and helpful AI assistant running fully on-device.\n" +
+    "Rules you must always follow:\n" +
+    "- Answer ONLY what was asked. Do not add greetings, follow-up questions, or filler phrases.\n" +
+    "- Respond in the same language the user writes in.\n" +
+    "- Be direct and precise. Avoid unnecessary padding.\n" +
+    "- Never repeat yourself or ask 'What would you like to do today?'.\n" +
+    "- If you do not know something, say so briefly."
+
+/**
+ * Bump this whenever defaults change and you want existing installs to reset.
+ * User's Kaggle credentials are preserved across resets.
+ */
+const val SETTINGS_VERSION = 2
 
 class AppPreferences(context: Context) {
 
     private val dataStore = context.dataStore
 
     companion object {
+        val KEY_SETTINGS_VERSION = intPreferencesKey("settings_version")
         val KEY_SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val KEY_TEMPERATURE = floatPreferencesKey("temperature")
         val KEY_MAX_TOKENS = intPreferencesKey("max_tokens")
@@ -40,9 +52,21 @@ class AppPreferences(context: Context) {
     }
 
     val settings: Flow<AppSettings> = dataStore.data.map { prefs ->
+        val storedVersion = prefs[KEY_SETTINGS_VERSION] ?: 0
+        if (storedVersion < SETTINGS_VERSION) {
+            // Preserve credentials, reset everything else
+            val savedUsername = prefs[KEY_KAGGLE_USERNAME] ?: ""
+            val savedKey = prefs[KEY_KAGGLE_KEY] ?: ""
+            dataStore.edit { mutable ->
+                mutable.clear()
+                mutable[KEY_SETTINGS_VERSION] = SETTINGS_VERSION
+                mutable[KEY_KAGGLE_USERNAME] = savedUsername
+                mutable[KEY_KAGGLE_KEY] = savedKey
+            }
+        }
         AppSettings(
             systemPrompt = prefs[KEY_SYSTEM_PROMPT] ?: DEFAULT_SYSTEM_PROMPT,
-            temperature = prefs[KEY_TEMPERATURE] ?: 0.8f,
+            temperature = prefs[KEY_TEMPERATURE] ?: 0.7f,
             maxTokens = prefs[KEY_MAX_TOKENS] ?: 1024,
             topP = prefs[KEY_TOP_P] ?: 0.95f,
             selectedModelId = prefs[KEY_SELECTED_MODEL] ?: "gemma_2b_it_int4",

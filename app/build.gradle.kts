@@ -3,6 +3,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -57,6 +58,10 @@ android {
             keepDebugSymbols += listOf("**/*.so")
         }
     }
+
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 }
 
 dependencies {
@@ -79,6 +84,10 @@ dependencies {
     // MediaPipe LLM Inference
     // If this fails to resolve, comment it out and set USE_MOCK_ENGINE = true in ServiceLocator.kt
     implementation(libs.mediapipe.tasks.genai)
+
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

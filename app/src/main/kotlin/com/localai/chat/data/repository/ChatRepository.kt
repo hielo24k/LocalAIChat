@@ -51,12 +51,26 @@ class ChatRepository(private val engine: InferenceEngine) {
     /**
      * Streams a response for the given [prompt].
      * Emits partial text tokens as they are generated.
+     *
+     * Filters Gemma's <end_of_turn> marker so it never reaches the UI,
+     * and stops emitting tokens once it is detected.
      */
-    fun streamResponse(prompt: String): Flow<String> {
-        return engine.generateStream(prompt)
-            .catch { e ->
-                emit("[Error: ${e.message ?: "Generation failed"}]")
+    fun streamResponse(prompt: String): Flow<String> = kotlinx.coroutines.flow.flow {
+        var endOfTurnSeen = false
+        engine.generateStream(prompt).collect { token ->
+            if (endOfTurnSeen) return@collect
+            if (token.contains("<end_of_turn>")) {
+                endOfTurnSeen = true
+                val before = token.substringBefore("<end_of_turn>").trimEnd()
+                if (before.isNotEmpty()) emit(before)
+                // Stop the engine immediately so isGenerating flips to false
+                engine.stop()
+            } else {
+                emit(token)
             }
+        }
+    }.catch { e ->
+        emit("[Error: ${e.message ?: "Generation failed"}]")
     }
 
     /**

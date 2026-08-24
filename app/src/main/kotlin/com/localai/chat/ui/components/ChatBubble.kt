@@ -20,6 +20,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontFamily
 import com.localai.chat.data.model.ChatMessage
 import com.localai.chat.data.model.MessageRole
 
@@ -82,15 +85,24 @@ fun ChatBubble(
                     if (message.isStreaming && message.content.isEmpty()) {
                         TypingIndicator()
                     } else {
-                        Text(
-                            text = message.content,
-                            color = if (isUser)
-                                MaterialTheme.colorScheme.onPrimary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyLarge,
-                            lineHeight = 22.sp
-                        )
+                        val textColor = if (isUser)
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        if (isUser) {
+                            Text(
+                                text = message.content,
+                                color = textColor,
+                                style = MaterialTheme.typography.bodyLarge,
+                                lineHeight = 22.sp
+                            )
+                        } else {
+                            SimpleMarkdownText(
+                                text = message.content,
+                                color = textColor,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
                 }
 
@@ -136,6 +148,91 @@ fun ChatBubble(
                             showCopied = false
                         }
                     }
+
+                    // Speed indicator
+                    if (message.tokensPerSecond != null && message.generationTimeMs != null) {
+                        Text(
+                            text = "%.1f tok/s · %.1fs".format(
+                                message.tokensPerSecond,
+                                message.generationTimeMs / 1000f
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SimpleMarkdownText(
+    text: String,
+    color: androidx.compose.ui.graphics.Color,
+    style: androidx.compose.ui.text.TextStyle,
+    modifier: Modifier = Modifier
+) {
+    val annotatedString = remember(text) {
+        buildSimpleMarkdown(text, color)
+    }
+    Text(
+        text = annotatedString,
+        style = style,
+        lineHeight = 22.sp,
+        modifier = modifier
+    )
+}
+
+private fun buildSimpleMarkdown(
+    text: String,
+    defaultColor: androidx.compose.ui.graphics.Color
+): androidx.compose.ui.text.AnnotatedString {
+    return androidx.compose.ui.text.buildAnnotatedString {
+        var i = 0
+        val src = text
+        while (i < src.length) {
+            when {
+                // Bold: **text** or __text__
+                i + 1 < src.length && (src.substring(i, i + 2) == "**" || src.substring(i, i + 2) == "__") -> {
+                    val marker = src.substring(i, i + 2)
+                    val end = src.indexOf(marker, i + 2)
+                    if (end != -1) {
+                        pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold))
+                        append(src.substring(i + 2, end))
+                        pop()
+                        i = end + 2
+                    } else {
+                        append(src[i])
+                        i++
+                    }
+                }
+                // Inline code: `text`
+                src[i] == '`' -> {
+                    val end = src.indexOf('`', i + 1)
+                    if (end != -1) {
+                        pushStyle(androidx.compose.ui.text.SpanStyle(
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            background = defaultColor.copy(alpha = 0.1f)
+                        ))
+                        append(src.substring(i + 1, end))
+                        pop()
+                        i = end + 1
+                    } else {
+                        append(src[i])
+                        i++
+                    }
+                }
+                // Bullet lists: lines starting with '- ' or '* '
+                (i == 0 || src[i - 1] == '\n') && i + 1 < src.length &&
+                    (src.substring(i, i + 2) == "- " || src.substring(i, i + 2) == "* ") -> {
+                    append("  • ")
+                    i += 2
+                }
+                else -> {
+                    append(src[i])
+                    i++
                 }
             }
         }

@@ -37,15 +37,21 @@ class MediaPipeInferenceEngine(
 
     @Volatile private var llmInference: LlmInference? = null
     @Volatile private var shouldStop = false
+    @Volatile private var activeChannel: kotlinx.coroutines.channels.SendChannel<String>? = null
 
     override fun isModelLoaded(): Boolean = llmInference != null
 
     override suspend fun loadModel(modelPath: String) {
         release()
 
+        // Auto-detect backend from filename: cpu-int4/cpu-int8 → CPU, gpu-int4/gpu-int8 → GPU
+        val backend = if (modelPath.contains("cpu", ignoreCase = true))
+            LlmInference.Backend.CPU else LlmInference.Backend.GPU
+
         val options = LlmInferenceOptions.builder()
             .setModelPath(modelPath)
-            .setMaxTokens(maxTokens)
+            .setMaxTokens(512)   // 512 keeps CPU inference fast enough to avoid ANR
+            .setPreferredBackend(backend)
             .build()
 
         return suspendCancellableCoroutine { cont ->
@@ -96,6 +102,7 @@ class MediaPipeInferenceEngine(
             ?: throw InferenceException("Model not loaded. Call loadModel() first.")
 
         shouldStop = false
+        activeChannel = channel
         val session = LlmInferenceSession.createFromOptions(engine, buildSessionOptions())
         session.addQueryChunk(prompt)
 
@@ -115,12 +122,15 @@ class MediaPipeInferenceEngine(
 
         awaitClose {
             shouldStop = true
+            activeChannel = null
             try { session.close() } catch (_: Exception) {}
         }
     }.flowOn(Dispatchers.IO)
 
     override fun stop() {
         shouldStop = true
+        activeChannel?.close()
+        activeChannel = null
     }
 
     override fun release() {

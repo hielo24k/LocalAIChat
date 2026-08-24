@@ -8,6 +8,7 @@ import com.localai.chat.data.engine.MockInferenceEngine
 import com.localai.chat.data.preferences.AppPreferences
 import com.localai.chat.data.repository.ChatRepository
 import com.localai.chat.data.repository.ModelRepository
+import com.localai.chat.data.database.AppDatabase
 import java.io.File
 
 /**
@@ -29,6 +30,9 @@ object ServiceLocator {
 
     // Lazily-initialized singletons
     val appPreferences: AppPreferences by lazy { AppPreferences(appContext) }
+
+    val database: AppDatabase by lazy { AppDatabase.getInstance(appContext) }
+    val chatDao by lazy { database.chatDao() }
 
     val inferenceEngine: InferenceEngine by lazy { buildEngine() }
 

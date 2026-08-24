@@ -26,7 +26,7 @@ class SettingsViewModel(
     private val _editSystemPrompt = MutableStateFlow(DEFAULT_SYSTEM_PROMPT)
     val editSystemPrompt: StateFlow<String> = _editSystemPrompt.asStateFlow()
 
-    private val _editTemperature = MutableStateFlow(0.8f)
+    private val _editTemperature = MutableStateFlow(0.7f)
     val editTemperature: StateFlow<Float> = _editTemperature.asStateFlow()
 
     private val _editMaxTokens = MutableStateFlow(1024)
@@ -70,7 +70,7 @@ class SettingsViewModel(
 
     fun resetToDefaults() {
         _editSystemPrompt.value = DEFAULT_SYSTEM_PROMPT
-        _editTemperature.value = 0.8f
+        _editTemperature.value = 0.7f
         _editMaxTokens.value = 1024
         _editTopP.value = 0.95f
         _editUseGpu.value = true

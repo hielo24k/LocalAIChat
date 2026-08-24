@@ -9,5 +9,7 @@ data class ChatMessage(
     val role: MessageRole,
     val content: String,
     val isStreaming: Boolean = false,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val tokensPerSecond: Float? = null,
+    val generationTimeMs: Long? = null
 )
