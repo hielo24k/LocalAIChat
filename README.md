@@ -1,17 +1,22 @@
-# LocalAI Chat 🤖
+# TIO IA 🧠
 
-A fully on-device Android AI chat application powered by [MediaPipe LLM Inference API](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android). No cloud, no backend, no API keys. Your conversations stay on your device.
+A fully on-device Android AI chat application powered by [MediaPipe LLM Inference API](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android). No cloud, no backend, no API keys. Your conversations stay 100% private on your device.
+
+## Download APK
+
+📲 **[Download TIO IA APK](https://github.com/hielo24k/LocalAIChat/raw/main/app/build/outputs/apk/debug/app-debug.apk)**
 
 ## Features
 
 - ✅ 100% on-device inference — no internet required after model download
-- ✅ Streaming responses (token-by-token display)
-- ✅ Gemma 2B-IT INT4 support via MediaPipe
-- ✅ Model download with progress indicator
+- ✅ Persistent Chat History — Room Database saves all your conversations locally
+- ✅ Streaming responses (token-by-token display) with speed indicators (tokens/sec)
+- ✅ Gemma 2B-IT INT4 & Gemma 3 1B-IT support
+- ✅ WhatsApp-style fluid keyboard handling (`imePadding`)
+- ✅ Basic Markdown support (bold, inline code, bullet lists)
 - ✅ Configurable system prompt, temperature, max tokens, top-p
-- ✅ Material 3 design with dynamic color
-- ✅ GPU acceleration toggle
-- ✅ Privacy-first: only INTERNET permission (for download only)
+- ✅ Material 3 design with dark mode UI
+- ✅ Privacy-first: no telemetry, no data collection
 
 ## Requirements
 
